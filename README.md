@@ -2,7 +2,7 @@
 
 This project provides a Node.js script that exports data from one PostgreSQL database and imports it to another, running automatically once a day. It also includes error handling, logging, and a retry mechanism to ensure the reliability of the data transfer. It also has the feature to drop and create target database based on the source database.
 
-## Applications
+## Use Cases
 
 - Automatic Postgres Export Import with Error Handling and Retry using NodeJS
 - Daily Postgres Sync with NodeJS Cron Job and Error Handling
