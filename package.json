@@ -1,5 +1,5 @@
 {
-  "name": "postgresql-migration-tool",
+  "name": "postgres-daily-sync-migrator",
   "version": "1.0.0",
   "description": "Migrates postgresql database",
   "main": "index.js",
