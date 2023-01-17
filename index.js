@@ -1,5 +1,6 @@
 const { exec } = require('child_process');
 const winston = require('winston');
+const cron = require('node-cron');
 require('dotenv').config()
 
 const sourceDbString = process.env.DATABASE_URL_SOURCE;
