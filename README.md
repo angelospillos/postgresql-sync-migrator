@@ -48,7 +48,7 @@ docker build -t mymigrator .
 Then you can run the container using the following command:
 
 ```
-docker run -e DATABASE_URL_SOURCE=postgresql://username:password@host:port/database_name -e DATABASE_URL_TARGET=postgresql://username:password@host:port/database_name -e SCHEDULE_TIME=0 0 * * * -e SCHEDULE_TIMEZONE=UTC mymigrator
+docker run -e DATABASE_URL_SOURCE=postgresql://username:password@host:port/database_name -e DATABASE_URL_TARGET=postgresql://username:password@host:port/database_name -e SCHEDULE_TIME=0 0 * * * -e SCHEDULE_TIMEZONE=UTC RUN_ON_STARTUP=true mymigrator
 ```
 
 You can build two dummy PostgreSQL to test it
