@@ -67,25 +67,34 @@ const createAndRestore = () => {
     });
 };
 
-const retry = (fn, retriesLeft = 5, interval = 10000) => {
-    fn()
-        .catch(error => {
-            if (retriesLeft === 0) {
-                logger.error(`Retries exhausted, giving up: ${error}`);
-                return;
-            }
-            logger.warn(`Retrying in ${interval}ms: ${error}`);
-            setTimeout(() => retry(fn, retriesLeft - 1, interval), interval);
-        });
+const retry = (fn, retriesLeft = 3, interval = 10000) => {
+    try {
+        fn();
+    } catch (error) {
+        if (retriesLeft === 0) {
+            logger.error(`Retries exhausted, giving up: ${error}`);
+            return;
+        }
+        logger.warn(`Retrying in ${interval}ms: ${error}`);
+        setTimeout(() => retry(fn, retriesLeft - 1, interval), interval);
+    };
 };
 
 cron.schedule(process.env.SCHEDULE_TIME, () => {
-    retry(backup, process.env.FAILOVER_RETRIES, process.env.FAILOVER_RETRY_DELAY_MS);
+    if (process.env.FAILOVER_RETRIES && process.env.FAILOVER_RETRY_DELAY_MS) {
+        retry(backup, process.env.FAILOVER_RETRIES, process.env.FAILOVER_RETRY_DELAY_MS);
+    } else {
+        retry(backup);
+    }
 }, {
     scheduled: true,
     timezone: process.env.SCHEDULE_TIMEZONE
 });
 
 if (process.env.RUN_ON_STARTUP === 'true') {
-    retry(backup, process.env.FAILOVER_RETRIES, process.env.FAILOVER_RETRY_DELAY_MS);
+    if (process.env.FAILOVER_RETRIES && process.env.FAILOVER_RETRY_DELAY_MS) {
+        retry(backup, process.env.FAILOVER_RETRIES, process.env.FAILOVER_RETRY_DELAY_MS);
+    } else {
+        retry(backup);
+    }
 }
