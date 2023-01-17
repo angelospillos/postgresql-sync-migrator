@@ -38,6 +38,7 @@ Data exported and imported successfully at Mon Jan 17 2022 00:00:00 GMT+0000 (UT
 ```
 
 ## Docker
+
 You can build the image by running the following command in the same directory as the Dockerfile:
 
 ```
@@ -47,7 +48,23 @@ docker build -t mymigrator .
 Then you can run the container using the following command:
 
 ```
-docker run -e DATABASE_URL_SOURCE=postgresql://username:password@host:port/database_name -e DATABASE_URL_TARGET=postgresql://username:password@host:port/database_name -e SCHEDULE_TIME=0 0 * * * -e SCHEDULE_TIMEZONE=UTC myMigrator
+docker run -e DATABASE_URL_SOURCE=postgresql://username:password@host:port/database_name -e DATABASE_URL_TARGET=postgresql://username:password@host:port/database_name -e SCHEDULE_TIME=0 0 * * * -e SCHEDULE_TIMEZONE=UTC mymigrator
+```
+
+You can build two dummy PostgreSQL to test it
+
+```
+docker run --name myPostgresDb1 -p 54551:5432 -e POSTGRES_USER=postgresUser -e POSTGRES_PASSWORD=postgresPW -e POSTGRES_DB=postgresDB -d postgres
+```
+
+```
+docker run --name myPostgresDb2 -p 54552:5432 -e POSTGRES_USER=postgresUser -e POSTGRES_PASSWORD=postgresPW -e POSTGRES_DB=postgresDB -d postgres
+```
+
+And then run the postgres-daily-sync-migrator
+
+```
+docker run -e DATABASE_URL_SOURCE=postgresql://postgresUser:postgresPW@localhost:54551/database_name -e DATABASE_URL_TARGET=postgresql://postgresUser:postgresPW@localhost:54552/database_name -e SCHEDULE_TIME=0 0 * * * -e SCHEDULE_TIMEZONE=UTC mymigrator
 ```
 
 ## Troubleshooting
