@@ -37,6 +37,19 @@ Data exported and imported successfully at Mon Jan 17 2022 00:00:00 GMT+0000 (UT
 
 ```
 
+## Docker
+You can build the image by running the following command in the same directory as the Dockerfile:
+
+```
+docker build -t myMigrator .
+```
+
+Then you can run the container using the following command:
+
+```
+docker run -e DATABASE_URL_SOURCE=postgresql://username:password@host:port/database_name -e DATABASE_URL_TARGET=postgresql://username:password@host:port/database_name -e SCHEDULE_TIME=0 0 * * * -e SCHEDULE_TIMEZONE=UTC myMigrator
+```
+
 ## Troubleshooting
 
 - Make sure that the environment variables are set correctly and the source and target databases are accessible
