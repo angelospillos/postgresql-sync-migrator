@@ -64,7 +64,7 @@ docker run --name myPostgresDb2 -p 54552:5432 -e POSTGRES_USER=postgresUser -e P
 And then run the postgres-daily-sync-migrator
 
 ```
-docker run -e DATABASE_URL_SOURCE=postgresql://postgresUser:postgresPW@localhost:54551/postgresDB -e DATABASE_URL_TARGET=postgresql://postgresUser:postgresPW@localhost:54552/postgresDB -e SCHEDULE_TIME="0 0 * * *" -e SCHEDULE_TIMEZONE=UTC -e RUN_ON_STARTUP=true mymigrator
+docker run --name mymigrator --network="host" -e DATABASE_URL_SOURCE=postgresql://postgresUser:postgresPW@localhost:54551/postgresDB -e DATABASE_URL_TARGET=postgresql://postgresUser:postgresPW@localhost:54552/postgresDB -e SCHEDULE_TIME="0 0 * * *" -e SCHEDULE_TIMEZONE=UTC -e RUN_ON_STARTUP=true mymigrator
 ```
 
 ## Troubleshooting
