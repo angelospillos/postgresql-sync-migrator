@@ -41,7 +41,7 @@ Data exported and imported successfully at Mon Jan 17 2022 00:00:00 GMT+0000 (UT
 You can build the image by running the following command in the same directory as the Dockerfile:
 
 ```
-docker build -t myMigrator .
+docker build -t mymigrator .
 ```
 
 Then you can run the container using the following command:
