@@ -4,7 +4,7 @@ require('dotenv').config()
 
 const sourceDbString = process.env.DATABASE_URL_SOURCE;
 const targetDbString = process.env.DATABASE_URL_TARGET;
-const backupFile = `${sourceDbName}_${new Date().toISOString()}.sql`;
+const backupFile = `${new Date().toISOString()}.sql`;
 
 const logger = winston.createLogger({
     level: 'info',
