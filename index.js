@@ -84,6 +84,6 @@ cron.schedule(process.env.SCHEDULE_TIME, () => {
     timezone: process.env.SCHEDULE_TIMEZONE
 });
 
-if (process.env.RUN_ON_START === 'true') {
+if (process.env.RUN_ON_STARTUP === 'true') {
     retry(backup, process.env.FAILOVER_RETRIES, process.env.FAILOVER_RETRY_DELAY_MS);
 }
