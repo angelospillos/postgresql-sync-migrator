@@ -66,7 +66,7 @@ This project is licensed under the [MIT License](https://opensource.org/licenses
 ## References
 
 - [node-cron](https://www.npmjs.com/package/node-cron)
-- [pg](https://www.npmjs.com/package/pg)
+- [dotenv](https://www.npmjs.com/package/dotenv)
 - [PostgreSQL](https://www.postgresql.org/)
 
 This project is tested and developed on node version 18.12.1 and npm version 8.19.2.
