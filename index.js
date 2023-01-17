@@ -1,5 +1,6 @@
 const { exec } = require('child_process');
 const winston = require('winston');
+require('dotenv').config()
 
 const sourceDbString = process.env.DATABASE_URL_SOURCE;
 const targetDbString = process.env.DATABASE_URL_TARGET;
