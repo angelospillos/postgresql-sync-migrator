@@ -38,11 +38,9 @@ const backup = () => {
     }
 };
 
-
 // Create temporary database
 const tempDbString = `${targetDbString}_temp`;
 const tempDbUrl = new URL(tempDbString);
-
 const createTempDb = () => {
     logger.info(`Temporary database ${tempDbString} is being created`);
     exec(`createdb -h ${tempDbUrl.hostname} -p ${tempDbUrl.port} -U ${tempDbUrl.username} -T template0 ${tempDbUrl.pathname.substring(1)} -O ${tempDbUrl.username}`, (error, stdout, stderr) => {
@@ -68,6 +66,7 @@ const restoreDb = () => {
     });
 };
 
+// Rename temporary database to target database
 const renameDb = () => {
     logger.info(`Temporary database ${tempDbString} is being renamed to ${targetDbString}`);
     exec(`psql --dbname=${tempDbString} -c "ALTER DATABASE ${tempDbString} RENAME TO ${targetDbString};"`, (error, stdout, stderr) => {
@@ -85,7 +84,6 @@ const renameDb = () => {
         });
     });
 };
-
 
 const retry = (fn, retriesLeft = 3, interval = 10000) => {
     try {
