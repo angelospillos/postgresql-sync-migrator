@@ -54,7 +54,7 @@ const createBackup = () => {
 
 const restoreDb = () => {
     logger.info(`Database ${targetDbString} is being restored`);
-    exec(`psql --dbname=${sourceDbString} -f ${backupFile}`, (error, stdout, stderr) => {
+    exec(`psql --dbname=${targetDbString} -f ${backupFile}`, (error, stdout, stderr) => {
         if (error) {
             throw new Error(`Error restoring database: ${error}`);
         }
