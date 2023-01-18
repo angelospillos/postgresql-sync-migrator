@@ -23,40 +23,59 @@ const logger = winston.createLogger({
 // Backup source database
 const backup = () => {
     if (!fs.existsSync(backupFile)) {
-        exec(`pg_dump --dbname=${sourceDbString} -f ${backupFile}`, (error, stdout, stderr) => {
+        logger.info(`Backup is being created at ${backupFile}`);
+        exec(`pg_dump --dbname=${sourceDbString} --format=c -f ${backupFile}`, (error, stdout, stderr) => {
             if (error) {
                 logger.error(`Error creating backup: ${error}`);
                 return;
             }
             logger.info(`Backup created at ${backupFile}`);
-            dropAndRestore();
+            createTempDb();
         });
     } else {
         logger.info(`Using existing backup at ${backupFile}`);
-        dropAndRestore();
+        createTempDb();
     }
 };
 
-// Drop target database
-const dropAndRestore = () => {
-    exec(`dropdb --dbname=${targetDbString}`, (error, stdout, stderr) => {
+
+// Create temporary database
+const tempDbString = `${targetDbString}_temp`;
+const tempDbUrl = new URL(tempDbString);
+
+const createTempDb = () => {
+    logger.info(`Temporary database ${tempDbString} is being created`);
+    exec(`createdb -h ${tempDbUrl.hostname} -p ${tempDbUrl.port} -U ${tempDbUrl.username} -T template0 ${tempDbUrl.pathname.substring(1)} -O ${tempDbUrl.username}`, (error, stdout, stderr) => {
         if (error) {
-            logger.error(`Error dropping database: ${error}`);
+            logger.error(`Error creating temporary database: ${error}`);
             return;
         }
-        logger.info(`Target database ${targetDbString} dropped`);
-        createAndRestore();
+        logger.info(`Temporary database ${tempDbString} created`);
+        restoreDb();
     });
 };
 
-// Create and restore target database
-const createAndRestore = () => {
-    exec(`createdb --dbname=${targetDbString} && psql --dbname=${targetDbString} < ${backupFile}`, (error, stdout, stderr) => {
+// Restore to temporary database
+const restoreDb = () => {
+    logger.info(`Temporary database ${tempDbString} is being restored`);
+    exec(`pg_restore --dbname=${tempDbString} --format=c ${backupFile}`, (error, stdout, stderr) => {
         if (error) {
             logger.error(`Error restoring database: ${error}`);
             return;
         }
-        logger.info(`Target database ${targetDbString} restored`);
+        logger.info(`Temporary database ${tempDbString} restored`);
+        renameDb();
+    });
+};
+
+const renameDb = () => {
+    logger.info(`Temporary database ${tempDbString} is being renamed to ${targetDbString}`);
+    exec(`psql --dbname=${tempDbString} -c "ALTER DATABASE ${tempDbString} RENAME TO ${targetDbString};"`, (error, stdout, stderr) => {
+        if (error) {
+            logger.error(`Error renaming database: ${error}`);
+            return;
+        }
+        logger.info(`Temporary database ${tempDbString} renamed to ${targetDbString}`);
         fs.unlink(backupFile, (err) => {
             if (err) {
                 logger.error(`Error deleting backup file: ${err}`);
@@ -66,6 +85,7 @@ const createAndRestore = () => {
         });
     });
 };
+
 
 const retry = (fn, retriesLeft = 3, interval = 10000) => {
     try {
