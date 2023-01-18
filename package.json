@@ -1,7 +1,7 @@
 {
-  "name": "postgres-daily-sync-migrator",
+  "name": "postgresql-sync-migrator",
   "version": "1.0.0",
-  "description": "Migrates postgresql database",
+  "description": "Migrates and synchornizes postgresql database",
   "main": "index.js",
   "author": "Angelos Pillos",
   "license": "MIT",
