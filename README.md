@@ -61,7 +61,7 @@ docker run --name myPostgresDb1 -p 54551:5432 -e POSTGRES_USER=postgresUser -e P
 docker run --name myPostgresDb2 -p 54552:5432 -e POSTGRES_USER=postgresUser -e POSTGRES_PASSWORD=postgresPW -e POSTGRES_DB=postgresDB -d postgres
 ```
 
-And then run the postgres-daily-sync-migrator
+And then run the postgresql-sync-migrator
 
 ```
 docker run --name mymigrator --network="host" -e DATABASE_URL_SOURCE=postgresql://postgresUser:postgresPW@localhost:54551/postgresDB -e DATABASE_URL_TARGET=postgresql://postgresUser:postgresPW@localhost:54552/postgresDB -e SCHEDULE_TIME="0 0 * * *" -e SCHEDULE_TIMEZONE=UTC -e RUN_ON_STARTUP=true mymigrator
