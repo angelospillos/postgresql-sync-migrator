@@ -50,32 +50,34 @@ const createBackup = () => {
         if (error) {
             throw new Error(`Error creating backup: ${error}`);
         }
-        logger.info(`Backup created at ${backupFile}`);
+        logger.info(`Source DB backup created successfully`);
+        logger.debug(`Source DB backup created at ${backupFile} successfully`);
         restoreDb();
     });
 };
 
 const restoreDb = () => {
-    logger.info(`Target DB is being restored with backup`);
-    logger.debug(`Target DB ${targetDbString} is being restored with backup ${backupFile}`);
+    logger.info(`Target DB is being restored with Source DB backup`);
+    logger.debug(`Target DB ${targetDbString} is being restored with Source DB backup ${backupFile}`);
     exec(`psql --dbname=${targetDbString} -f ${backupFile}`, { maxBuffer: 1024 * 500000 }, (error, stdout, stderr) => {
         if (error) {
-            throw new Error(`Error restoring database: ${error}`);
+            throw new Error(`Error restoring to target DB: ${error}`);
         }
-        logger.info(`Database ${targetDbString} restored`);
+        logger.info(`Target DB restored successfully with Source DB backup `);
+        logger.debug(`Target DB ${targetDbString} restored successfully with Source DB backup ${backupFile}`);
         removeBackup();
     });
 };
 
 const removeBackup = () => {
-    logger.info(`Backup is being deleted from server`);
-    logger.debug(`Backup ${backupFile} is being deleted from server`);
+    logger.info(`Source DB backup is being deleted from server`);
+    logger.debug(`Source DB backup ${backupFile} is being deleted from server`);
     fs.unlink(backupFile, (err) => {
         if (err) {
             throw new Error(`Error deleting backup file: ${error}`);
         } else {
-            logger.info(`Backup file deleted from server`);
-            logger.debug(`Backup file ${backupFile} deleted from server: ${backupFile}`);
+            logger.info(`Source DB backup file deleted from server successfully`);
+            logger.debug(`Source DB backup file ${backupFile} deleted from server successfully`);
         }
     });
 };
