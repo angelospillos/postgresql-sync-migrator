@@ -44,7 +44,7 @@ const retry = (fn, retriesLeft = 5, interval = 1000) => {
 
 const createBackup = () => {
     logger.info(`Database ${sourceDbString} backup is being created at ${backupFile}`);
-    exec(`pg_dump --dbname=${sourceDbString} --clean --if-exists --no-owner --no-acl -f ${backupFile}`, {maxBuffer: 1024 * 500000}, (error, stdout, stderr) => {
+    exec(`pg_dump --dbname=${sourceDbString} --clean --if-exists --no-owner --no-acl -f ${backupFile}`, { maxBuffer: 1024 * 500000 }, (error, stdout, stderr) => {
         if (error) {
             throw new Error(`Error creating backup: ${error}`);
         }
@@ -55,7 +55,7 @@ const createBackup = () => {
 
 const restoreDb = () => {
     logger.info(`Database ${targetDbString} is being restored with backup ${backupFile}`);
-    exec(`psql --dbname=${targetDbString} -f ${backupFile}`, {maxBuffer: 1024 * 500000}, (error, stdout, stderr) => {
+    exec(`psql --dbname=${targetDbString} -f ${backupFile}`, { maxBuffer: 1024 * 500000 }, (error, stdout, stderr) => {
         if (error) {
             throw new Error(`Error restoring database: ${error}`);
         }
@@ -94,21 +94,14 @@ if (process.env.RUN_ON_STARTUP === 'true') {
     run();
 }
 
-// Require the framework and instantiate it
-const fastify = require('fastify')({ logger: true })
+const express = require('express');
+const app = express();
+const port = process.env.PORT || 3000;
 
-// Declare a route
-fastify.get('/', async (request, reply) => {
-  return { sync: 'ok' }
+app.get('/', (req, res) => {
+    res.send('Up and running')
 })
 
-// Run the server!
-const start = async () => {
-  try {
-    await fastify.listen({ port: process.env.PORT || 3000 , hostname: '0.0.0.0'})
-  } catch (err) {
-    fastify.log.error(err)
-    process.exit(1)
-  }
-}
-start()
+app.listen(port, () => {
+    console.log(`PostgreSQL Sync Migrator listening on port ${port}`)
+})
