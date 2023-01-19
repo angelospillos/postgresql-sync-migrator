@@ -13,6 +13,7 @@ const logger = createLogger({
         timestamp(),
         myFormat
     ),
+    level: process.env.LOGGER_LEVEL || 'info',
     transports: [new transports.Console()]
 });
 
@@ -43,7 +44,8 @@ const retry = (fn, retriesLeft = 5, interval = 1000) => {
 };
 
 const createBackup = () => {
-    logger.info(`Database ${sourceDbString} backup is being created at ${backupFile}`);
+    logger.info(`Source DB backup is being created`);
+    logger.debug(`Souece DB ${sourceDbString} backup is being created at ${backupFile}`);
     exec(`pg_dump --dbname=${sourceDbString} --clean --if-exists --no-owner --no-acl -f ${backupFile}`, { maxBuffer: 1024 * 500000 }, (error, stdout, stderr) => {
         if (error) {
             throw new Error(`Error creating backup: ${error}`);
@@ -54,7 +56,8 @@ const createBackup = () => {
 };
 
 const restoreDb = () => {
-    logger.info(`Database ${targetDbString} is being restored with backup ${backupFile}`);
+    logger.info(`Target DB is being restored with backup`);
+    logger.debug(`Target DB ${targetDbString} is being restored with backup ${backupFile}`);
     exec(`psql --dbname=${targetDbString} -f ${backupFile}`, { maxBuffer: 1024 * 500000 }, (error, stdout, stderr) => {
         if (error) {
             throw new Error(`Error restoring database: ${error}`);
@@ -65,12 +68,14 @@ const restoreDb = () => {
 };
 
 const removeBackup = () => {
-    logger.info(`Backup ${backupFile} is being deleted`);
+    logger.info(`Backup is being deleted from server`);
+    logger.debug(`Backup ${backupFile} is being deleted from server`);
     fs.unlink(backupFile, (err) => {
         if (err) {
             throw new Error(`Error deleting backup file: ${error}`);
         } else {
-            logger.info(`Backup file ${backupFile} deleted`);
+            logger.info(`Backup file deleted from server`);
+            logger.debug(`Backup file ${backupFile} deleted from server: ${backupFile}`);
         }
     });
 };
@@ -103,5 +108,5 @@ app.get('/', (req, res) => {
 })
 
 app.listen(port, () => {
-    console.log(`PostgreSQL Sync Migrator listening on port ${port}`)
+    logger.info(`PostgreSQL Sync Migrator listening on port ${port}`);
 })
