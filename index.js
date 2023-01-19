@@ -1,4 +1,5 @@
-const { exec } = require('child_process');
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
 const fs = require('fs');
 const cron = require('node-cron');
 const winston = require('winston');
@@ -43,30 +44,36 @@ const retry = (fn, retriesLeft = 5, interval = 1000) => {
     }
 };
 
-const createBackup = () => {
+const createBackup = async () => {
     logger.info(`Source DB backup is being created`);
     logger.debug(`Souece DB ${sourceDbString} backup is being created at ${backupFile}`);
-    exec(`pg_dump --dbname=${sourceDbString} --clean --if-exists --no-owner --no-acl -f ${backupFile}`, { maxBuffer: 1024 * 500000 }, (error, stdout, stderr) => {
-        if (error) {
-            throw new Error(`Error creating backup: ${error}`);
-        }
+    try {
+        const { stdout, stderr } = await exec(`pg_dump --dbname=${sourceDbString} --clean --if-exists --no-owner --no-acl -f ${backupFile}`, { maxBuffer: 1024 * 500000 });
+        logger.info('Source DB backup stdout:', stdout);
+        logger.info('Source DB backup stderr:', stderr);
         logger.info(`Source DB backup created successfully`);
         logger.debug(`Source DB backup created at ${backupFile} successfully`);
-        restoreDb();
-    });
+        await restoreDb();
+    } catch (error) {
+        // should contain code (exit code) and signal (that caused the termination)
+        throw new Error(`Error creating Source DB backup: ${error}`);
+    }
 };
 
-const restoreDb = () => {
+const restoreDb = async () => {
     logger.info(`Target DB is being restored with Source DB backup`);
     logger.debug(`Target DB ${targetDbString} is being restored with Source DB backup ${backupFile}`);
-    exec(`psql --dbname=${targetDbString} -f ${backupFile}`, { maxBuffer: 1024 * 500000 }, (error, stdout, stderr) => {
-        if (error) {
-            throw new Error(`Error restoring to target DB: ${error}`);
-        }
-        logger.info(`Target DB restored successfully with Source DB backup `);
-        logger.debug(`Target DB ${targetDbString} restored successfully with Source DB backup ${backupFile}`);
-        removeBackup();
-    });
+    try {
+        const { stdout, stderr } = await exec(`psql --dbname=${targetDbString} -f ${backupFile}`, { maxBuffer: 1024 * 500000 });
+        logger.info('Target DB backup stdout:', stdout);
+        logger.info('Target DB backup stderr:', stderr);
+        logger.info(`Target DB restored with Source DB backup successfully`);
+        logger.debug(`Target DB ${targetDbString} restored with Source DB backup ${backupFile} successfully`);
+        await removeBackup();
+    } catch (error) {
+        // should contain code (exit code) and signal (that caused the termination)
+        throw new Error(`Error restoring to Target DB: ${error}`);
+    }
 };
 
 const removeBackup = () => {
