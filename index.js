@@ -44,7 +44,7 @@ const retry = (fn, retriesLeft = 5, interval = 1000) => {
 
 const createBackup = () => {
     logger.info(`Database ${sourceDbString} backup is being created at ${backupFile}`);
-    exec(`pg_dump --dbname=${sourceDbString} --clean --if-exists -f ${backupFile}`, (error, stdout, stderr) => {
+    exec(`pg_dump --dbname=${sourceDbString} --clean --if-exists -f ${backupFile}`, {maxBuffer: 1024 * 500}, (error, stdout, stderr) => {
         if (error) {
             throw new Error(`Error creating backup: ${error}`);
         }
@@ -55,7 +55,7 @@ const createBackup = () => {
 
 const restoreDb = () => {
     logger.info(`Database ${targetDbString} is being restored with backup ${backupFile}`);
-    exec(`psql --dbname=${targetDbString} -f ${backupFile}`, (error, stdout, stderr) => {
+    exec(`psql --dbname=${targetDbString} -f ${backupFile}`, {maxBuffer: 1024 * 500}, (error, stdout, stderr) => {
         if (error) {
             throw new Error(`Error restoring database: ${error}`);
         }
