@@ -3,8 +3,9 @@ const exec = util.promisify(require('child_process').exec);
 const fs = require('fs');
 const cron = require('node-cron');
 const winston = require('winston');
+
 const { createLogger, format, transports } = winston;
-const { combine, timestamp, label, printf } = format;
+const { combine, timestamp, printf } = format;
 const myFormat = printf(({ level, message, timestamp }) => {
     return `${timestamp} ${level}: ${message}`;
 });
@@ -33,10 +34,12 @@ const retry = (fn, retriesLeft = 5, interval = 1000) => {
             logger.error(`Error: ${error}`);
             retriesLeft--;
             if (retriesLeft) {
+                sendDiscordMessage(`Retrying in ${interval}ms: ${error}`);
                 logger.warn(`Retrying in ${interval}ms: ${error}`);
                 setTimeout(() => { }, interval);
             }
             if (retriesLeft === 0) {
+                sendDiscordMessage(`Retries exhausted, giving up: ${error}`);
                 logger.error(`Retries exhausted, giving up: ${error}`);
                 return;
             }
@@ -45,44 +48,53 @@ const retry = (fn, retriesLeft = 5, interval = 1000) => {
 };
 
 const createBackup = async () => {
+    sendDiscordMessage(`Source DB backup is being created`);
     logger.info(`Source DB backup is being created`);
     logger.debug(`Souece DB ${sourceDbString} backup is being created at ${backupFile}`);
     try {
-        const { stdout, stderr } = await exec(`pg_dump --dbname=${sourceDbString} --clean --if-exists --no-owner --no-acl -f ${backupFile}`, { maxBuffer: 1024 * 500000 });
+        const { stdout, stderr } = await exec(`pg_dump --dbname=${sourceDbString} --clean --if-exists --no-owner --no-acl -f ${backupFile}`, { maxBuffer: 1024 * 1000, timeout: 120000 });
         logger.info('Source DB backup stdout:', stdout);
         logger.info('Source DB backup stderr:', stderr);
         logger.info(`Source DB backup created successfully`);
         logger.debug(`Source DB backup created at ${backupFile} successfully`);
+        sendDiscordMessage(`Source DB backup created successfully`);
         await restoreDb();
     } catch (error) {
+        sendDiscordMessage(`Error creating Source DB backup`);
         // should contain code (exit code) and signal (that caused the termination)
         throw new Error(`Error creating Source DB backup: ${error}`);
     }
 };
 
 const restoreDb = async () => {
+    sendDiscordMessage(`Target DB is being restored with Source DB backup`);
     logger.info(`Target DB is being restored with Source DB backup`);
     logger.debug(`Target DB ${targetDbString} is being restored with Source DB backup ${backupFile}`);
     try {
-        const { stdout, stderr } = await exec(`psql --dbname=${targetDbString} -f ${backupFile}`, { maxBuffer: 1024 * 500000 });
+        const { stdout, stderr } = await exec(`psql --dbname=${targetDbString} -f ${backupFile}`, { maxBuffer: 1024 * 1000, timeout: 120000 });
         logger.info('Target DB backup stdout:', stdout);
         logger.info('Target DB backup stderr:', stderr);
         logger.info(`Target DB restored with Source DB backup successfully`);
         logger.debug(`Target DB ${targetDbString} restored with Source DB backup ${backupFile} successfully`);
+        sendDiscordMessage(`Target DB restored with Source DB backup successfully`);
         await removeBackup();
     } catch (error) {
+        sendDiscordMessage(`Error restoring to Target DB`);
         // should contain code (exit code) and signal (that caused the termination)
         throw new Error(`Error restoring to Target DB: ${error}`);
     }
 };
 
 const removeBackup = () => {
+    sendDiscordMessage(`Source DB backup is being deleted from server`);
     logger.info(`Source DB backup is being deleted from server`);
     logger.debug(`Source DB backup ${backupFile} is being deleted from server`);
-    fs.unlink(backupFile, (err) => {
-        if (err) {
+    fs.unlink(backupFile, (error) => {
+        if (error) {
+            sendDiscordMessage(`Error deleting backup file`);
             throw new Error(`Error deleting backup file: ${error}`);
         } else {
+            sendDiscordMessage(`Source DB backup file deleted from server successfully`);
             logger.info(`Source DB backup file deleted from server successfully`);
             logger.debug(`Source DB backup file ${backupFile} deleted from server successfully`);
         }
@@ -109,6 +121,7 @@ if (process.env.RUN_ON_STARTUP === 'true') {
 }
 
 const express = require('express');
+const { default: sendDiscordMessage } = require('./lib/sendDiscordMessage');
 const app = express();
 const port = process.env.PORT || 3000;
 
