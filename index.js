@@ -2,6 +2,19 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const cron = require('node-cron');
 const winston = require('winston');
+const express = require('express');
+const app = express();
+const port = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+    res.send('Up and running')
+})
+
+app.listen(port, () => {
+    logger.info(`PostgreSQL Sync Migrator listening on port ${port}`);
+})
+
+const { default: sendDiscordMessage } = require('./lib/sendDiscordMessage');
 
 const { createLogger, format, transports } = winston;
 const { combine, timestamp, printf } = format;
@@ -154,15 +167,4 @@ if (process.env.RUN_ON_STARTUP === 'true') {
     run();
 }
 
-const express = require('express');
-const { default: sendDiscordMessage } = require('./lib/sendDiscordMessage');
-const app = express();
-const port = process.env.PORT || 3000;
 
-app.get('/', (req, res) => {
-    res.send('Up and running')
-})
-
-app.listen(port, () => {
-    logger.info(`PostgreSQL Sync Migrator listening on port ${port}`);
-})
