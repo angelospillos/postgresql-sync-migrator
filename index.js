@@ -32,7 +32,6 @@ const retry = (fn, retriesLeft = 3, interval = 10000) => {
             logger.error(`Error: ${error}`);
             retriesLeft--;
             if (retriesLeft) {
-                sendDiscordMessage(`Retrying in ${interval}ms: ${error}`);
                 logger.warn(`Retrying in ${interval}ms: ${error}`);
                 setTimeout(() => { }, interval);
             }
@@ -118,7 +117,6 @@ const terminateProcess = async (processName) => {
     }
 
     logger.info(`Terminating process ${processName}`);
-    sendDiscordMessage(`Terminating process ${processName}`);
     const pkill = spawn('pkill', ['-f', processName]);
     pkill.stdout.on('data', (data) => {
         logger.info(`Terminating process stdout ${data}`);
@@ -130,10 +128,8 @@ const terminateProcess = async (processName) => {
 
     pkill.on('close', (code) => {
         if (code === 0) {
-            sendDiscordMessage(`${processName} process terminated`);
             logger.info(`${processName} process terminated`);
         } else {
-            sendDiscordMessage(`Error terminating process ${processName}`);
             logger.error(`Error terminating process ${processName}`);
         }
     });
