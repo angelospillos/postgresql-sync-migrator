@@ -60,11 +60,11 @@ const createBackup = () => {
     });
 
     pg_dump.on('close', (code) => {
-        terminateProcess('pg_dump');
         if (code === 0) {
             logger.info(`Source DB backup created successfully`);
             logger.debug(`Source DB backup created at ${backupFile} successfully`);
             sendDiscordMessage(`Source DB backup created successfully`);
+            terminateProcess('pg_dump');
             restoreDb();
         } else {
             sendDiscordMessage(`Error creating Source DB backup`);
@@ -88,11 +88,11 @@ const restoreDb = () => {
     });
 
     psql.on('close', (code) => {
-        terminateProcess('psql');
         if (code === 0) {
             logger.info(`Target DB restored with Source DB backup successfully`);
             logger.debug(`Target DB ${targetDbString} restored with Source DB backup ${backupFile} successfully`);
             sendDiscordMessage(`Target DB restored with Source DB backup successfully`);
+            terminateProcess('psql');
             removeBackup();
         } else {
             sendDiscordMessage(`Error restoring to Target DB`);
