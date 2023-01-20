@@ -5,6 +5,11 @@ const winston = require('winston');
 const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
+const { sendDiscordMessage } = require('./lib/discord');
+const { isProcessRunning } = require('./lib/process');
+const createLogger = require('./createLogger');
+const logger = createLogger();
+require('dotenv').config();
 
 app.get('/', (req, res) => {
     res.send('Up and running')
@@ -13,26 +18,6 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
     logger.info(`PostgreSQL Sync Migrator listening on port ${port}`);
 })
-
-const { sendDiscordMessage } = require('./lib/discord');
-const { isProcessRunning } = require('./lib/process');
-
-const { createLogger, format, transports } = winston;
-const { combine, timestamp, printf } = format;
-const myFormat = printf(({ level, message, timestamp }) => {
-    return `${timestamp} ${level}: ${message}`;
-});
-
-const logger = createLogger({
-    format: combine(
-        timestamp(),
-        myFormat
-    ),
-    level: process.env.LOGGER_LEVEL || 'info',
-    transports: [new transports.Console()]
-});
-
-require('dotenv').config();
 
 const sourceDbString = process.env.DATABASE_URL_SOURCE;
 const targetDbString = process.env.DATABASE_URL_TARGET;
