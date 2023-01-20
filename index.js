@@ -15,6 +15,7 @@ app.listen(port, () => {
 })
 
 const { sendDiscordMessage } = require('./lib/discord');
+const { isProcessRunning } = require('./lib/process');
 
 const { createLogger, format, transports } = winston;
 const { combine, timestamp, printf } = format;
@@ -66,16 +67,16 @@ const createBackup = () => {
     logger.debug(`Souece DB ${sourceDbString} backup is being created at ${backupFile}`);
     const pg_dump = spawn('pg_dump', ['--dbname=' + sourceDbString, '--clean', '--if-exists', '--no-owner', '--no-acl', '-f', backupFile]);
     pg_dump.stdout.on('data', (data) => {
-        logger.info(`stdout: ${data}`);
+        logger.info(`Source DB backup stdout: ${data}`);
     });
 
     pg_dump.stderr.on('data', (data) => {
-        logger.error(`stderr: ${data}`);
+        logger.error(`Source DB backup stderr: ${data}`);
     });
 
     pg_dump.on('close', (code) => {
+        terminateProcess('pg_dump');
         if (code === 0) {
-            terminateProcess('pg_dump');
             logger.info(`Source DB backup created successfully`);
             logger.debug(`Source DB backup created at ${backupFile} successfully`);
             sendDiscordMessage(`Source DB backup created successfully`);
@@ -94,16 +95,16 @@ const restoreDb = () => {
     logger.debug(`Target DB ${targetDbString} is being restored with Source DB backup ${backupFile}`);
     const psql = spawn('psql', ['--dbname=' + targetDbString, '-f', backupFile]);
     psql.stdout.on('data', (data) => {
-        logger.info(`stdout: ${data}`);
+        logger.info(`Target DB restore stdout: ${data}`);
     });
 
     psql.stderr.on('data', (data) => {
-        logger.error(`stderr: ${data}`);
+        logger.error(`Target DB restore stderr: ${data}`);
     });
 
     psql.on('close', (code) => {
+        terminateProcess('psql');
         if (code === 0) {
-            terminateProcess('psql');
             logger.info(`Target DB restored with Source DB backup successfully`);
             logger.debug(`Target DB ${targetDbString} restored with Source DB backup ${backupFile} successfully`);
             sendDiscordMessage(`Target DB restored with Source DB backup successfully`);
@@ -125,17 +126,30 @@ const removeBackup = () => {
     });
 };
 
-const terminateProcess = (processName) => {
-    logger.info(`Terminating ${processName}`);
-    sendDiscordMessage(`Terminating ${processName}`);
+const terminateProcess = async (processName) => {
+
+    if (!isProcessRunning(processName)) {
+        logger.info(`${processName} is not running, will not terminate`);
+    }
+
+    logger.info(`Terminating process ${processName}`);
+    sendDiscordMessage(`Terminating process ${processName}`);
     const pkill = spawn('pkill', ['-f', processName]);
+    pkill.stdout.on('data', (data) => {
+        logger.info(`Terminating process stdout ${data}`);
+    });
+
+    pkill.stderr.on('data', (data) => {
+        logger.error(`Terminating process stderr ${data}`);
+    });
+
     pkill.on('close', (code) => {
         if (code === 0) {
-            sendDiscordMessage(`${processName} terminated`);
-            logger.info(`${processName} terminated`);
+            sendDiscordMessage(`${processName} process terminated`);
+            logger.info(`${processName} process terminated`);
         } else {
-            sendDiscordMessage(`Error terminating ${processName}`);
-            logger.error(`Error terminating ${processName}`);
+            sendDiscordMessage(`Error terminating process ${processName}`);
+            logger.error(`Error terminating process ${processName}`);
         }
     });
 };
@@ -166,5 +180,3 @@ if (process.env.RUN_ON_STARTUP === 'true') {
     sendDiscordMessage(`Running on startup`);
     run();
 }
-
-
