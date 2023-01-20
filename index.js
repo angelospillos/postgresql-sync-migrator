@@ -1,5 +1,4 @@
-const util = require('util');
-const exec = util.promisify(require('child_process').exec);
+const { spawn } = require('child_process');
 const fs = require('fs');
 const cron = require('node-cron');
 const winston = require('winston');
@@ -25,7 +24,7 @@ const sourceDbString = process.env.DATABASE_URL_SOURCE;
 const targetDbString = process.env.DATABASE_URL_TARGET;
 const backupFile = `${new Date().toISOString()}.sql`;
 
-const retry = (fn, retriesLeft = 5, interval = 1000) => {
+const retry = (fn, retriesLeft = 3, interval = 10000) => {
     while (retriesLeft) {
         try {
             fn();
@@ -47,69 +46,102 @@ const retry = (fn, retriesLeft = 5, interval = 1000) => {
     }
 };
 
-const createBackup = async () => {
+const createBackup = () => {
+    terminateProcess('pg_dump');
     sendDiscordMessage(`Source DB backup is being created`);
     logger.info(`Source DB backup is being created`);
     logger.debug(`Souece DB ${sourceDbString} backup is being created at ${backupFile}`);
-    try {
-        const { stdout, stderr } = await exec(`pg_dump --dbname=${sourceDbString} --clean --if-exists --no-owner --no-acl -f ${backupFile}`, { maxBuffer: 1024 * 1000, timeout: 120000 });
-        logger.info('Source DB backup stdout:', stdout);
-        logger.info('Source DB backup stderr:', stderr);
-        logger.info(`Source DB backup created successfully`);
-        logger.debug(`Source DB backup created at ${backupFile} successfully`);
-        sendDiscordMessage(`Source DB backup created successfully`);
-        await restoreDb();
-    } catch (error) {
-        sendDiscordMessage(`Error creating Source DB backup`);
-        // should contain code (exit code) and signal (that caused the termination)
-        throw new Error(`Error creating Source DB backup: ${error}`);
-    }
+    const pg_dump = spawn('pg_dump', ['--dbname=' + sourceDbString, '--clean', '--if-exists', '--no-owner', '--no-acl', '-f', backupFile]);
+    pg_dump.stdout.on('data', (data) => {
+        logger.info(`stdout: ${data}`);
+    });
+
+    pg_dump.stderr.on('data', (data) => {
+        logger.error(`stderr: ${data}`);
+    });
+
+    pg_dump.on('close', (code) => {
+        if (code === 0) {
+            terminateProcess('pg_dump');
+            logger.info(`Source DB backup created successfully`);
+            logger.debug(`Source DB backup created at ${backupFile} successfully`);
+            sendDiscordMessage(`Source DB backup created successfully`);
+            restoreDb();
+        } else {
+            sendDiscordMessage(`Error creating Source DB backup`);
+            throw new Error(`Error creating Source DB backup. Exit code: ${code}`);
+        }
+    });
 };
 
-const restoreDb = async () => {
+const restoreDb = () => {
+    terminateProcess('psql');
     sendDiscordMessage(`Target DB is being restored with Source DB backup`);
     logger.info(`Target DB is being restored with Source DB backup`);
     logger.debug(`Target DB ${targetDbString} is being restored with Source DB backup ${backupFile}`);
-    try {
-        const { stdout, stderr } = await exec(`psql --dbname=${targetDbString} -f ${backupFile}`, { maxBuffer: 1024 * 1000, timeout: 120000 });
-        logger.info('Target DB backup stdout:', stdout);
-        logger.info('Target DB backup stderr:', stderr);
-        logger.info(`Target DB restored with Source DB backup successfully`);
-        logger.debug(`Target DB ${targetDbString} restored with Source DB backup ${backupFile} successfully`);
-        sendDiscordMessage(`Target DB restored with Source DB backup successfully`);
-        await removeBackup();
-    } catch (error) {
-        sendDiscordMessage(`Error restoring to Target DB`);
-        // should contain code (exit code) and signal (that caused the termination)
-        throw new Error(`Error restoring to Target DB: ${error}`);
-    }
+    const psql = spawn('psql', ['--dbname=' + targetDbString, '-f', backupFile]);
+    psql.stdout.on('data', (data) => {
+        logger.info(`stdout: ${data}`);
+    });
+
+    psql.stderr.on('data', (data) => {
+        logger.error(`stderr: ${data}`);
+    });
+
+    psql.on('close', (code) => {
+        if (code === 0) {
+            terminateProcess('psql');
+            logger.info(`Target DB restored with Source DB backup successfully`);
+            logger.debug(`Target DB ${targetDbString} restored with Source DB backup ${backupFile} successfully`);
+            sendDiscordMessage(`Target DB restored with Source DB backup successfully`);
+            removeBackup();
+        } else {
+            sendDiscordMessage(`Error restoring to Target DB`);
+            throw new Error(`Error restoring to Target DB. Exit code: ${code}`);
+        }
+    });
 };
 
 const removeBackup = () => {
-    sendDiscordMessage(`Source DB backup is being deleted from server`);
-    logger.info(`Source DB backup is being deleted from server`);
-    logger.debug(`Source DB backup ${backupFile} is being deleted from server`);
-    fs.unlink(backupFile, (error) => {
-        if (error) {
-            sendDiscordMessage(`Error deleting backup file`);
-            throw new Error(`Error deleting backup file: ${error}`);
+    fs.unlink(backupFile, (err) => {
+        if (err) {
+            logger.error(`Error deleting backup file: ${err}`);
         } else {
-            sendDiscordMessage(`Source DB backup file deleted from server successfully`);
-            logger.info(`Source DB backup file deleted from server successfully`);
-            logger.debug(`Source DB backup file ${backupFile} deleted from server successfully`);
+            logger.info(`Backup file ${backupFile} deleted`);
+        }
+    });
+};
+
+const terminateProcess = (processName) => {
+    logger.info(`Terminating ${processName}`);
+    sendDiscordMessage(`Terminating ${processName}`);
+    const pkill = spawn('pkill', ['-f', processName]);
+    pkill.on('close', (code) => {
+        if (code === 0) {
+            sendDiscordMessage(`${processName} terminated`);
+            logger.info(`${processName} terminated`);
+        } else {
+            sendDiscordMessage(`Error terminating ${processName}`);
+            logger.error(`Error terminating ${processName}`);
         }
     });
 };
 
 const run = () => {
     if (process.env.FAILOVER_RETRIES && process.env.FAILOVER_RETRY_DELAY_MS) {
+        senddiscordMessage(`Retrying ${process.env.FAILOVER_RETRIES} times with ${process.env.FAILOVER_RETRY_DELAY_MS}ms delay`)
+        logger.info(`Retrying ${process.env.FAILOVER_RETRIES} times with ${process.env.FAILOVER_RETRY_DELAY_MS}ms delay`);
         retry(createBackup, process.env.FAILOVER_RETRIES, process.env.FAILOVER_RETRY_DELAY_MS);
     } else {
+        sendDiscordMessage(`Retrying 3 times with 10000ms delay`)
+        logger.info(`Retrying 3 times with 10000ms delay`);
         retry(createBackup);
     }
 };
 
 cron.schedule(process.env.SCHEDULE_TIME, () => {
+    logger.info(`Running scheduled job`);
+    sendDiscordMessage(`Running scheduled job`);
     run();
 }, {
     scheduled: true,
@@ -117,6 +149,8 @@ cron.schedule(process.env.SCHEDULE_TIME, () => {
 });
 
 if (process.env.RUN_ON_STARTUP === 'true') {
+    logger.info(`Running on startup`);
+    sendDiscordMessage(`Running on startup`);
     run();
 }
 
