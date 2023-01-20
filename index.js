@@ -143,7 +143,7 @@ const terminateProcess = (processName) => {
 
 const run = () => {
     if (process.env.FAILOVER_RETRIES && process.env.FAILOVER_RETRY_DELAY_MS) {
-        senddiscordMessage(`Retrying ${process.env.FAILOVER_RETRIES} times with ${process.env.FAILOVER_RETRY_DELAY_MS}ms delay`)
+        sendDiscordMessage(`Retrying ${process.env.FAILOVER_RETRIES} times with ${process.env.FAILOVER_RETRY_DELAY_MS}ms delay`)
         logger.info(`Retrying ${process.env.FAILOVER_RETRIES} times with ${process.env.FAILOVER_RETRY_DELAY_MS}ms delay`);
         retry(createBackup, process.env.FAILOVER_RETRIES, process.env.FAILOVER_RETRY_DELAY_MS);
     } else {
