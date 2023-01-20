@@ -7,7 +7,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 const { sendDiscordMessage } = require('./lib/discord');
 const { isProcessRunning } = require('./lib/process');
-const createLogger = require('./createLogger');
+const { createLogger } = require('./lib/logger');
 const logger = createLogger();
 require('dotenv').config();
 
