@@ -14,7 +14,8 @@ app.listen(port, () => {
     logger.info(`PostgreSQL Sync Migrator listening on port ${port}`);
 })
 
-const { default: sendDiscordMessage } = require('./lib/sendDiscordMessage');
+const sendDiscordMessage = require('./lib/discord');
+
 
 const { createLogger, format, transports } = winston;
 const { combine, timestamp, printf } = format;
