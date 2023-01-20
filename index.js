@@ -52,7 +52,7 @@ const createBackup = () => {
     logger.debug(`Souece DB ${sourceDbString} backup is being created at ${backupFile}`);
     const pg_dump = spawn('pg_dump', ['--dbname=' + sourceDbString, '--clean', '--if-exists', '--no-owner', '--no-acl', '-f', backupFile]);
     pg_dump.stdout.on('data', (data) => {
-        logger.info(`Source DB backup stdout: ${data}`);
+        logger.debug(`Source DB backup stdout: ${data}`);
     });
 
     pg_dump.stderr.on('data', (data) => {
@@ -80,7 +80,7 @@ const restoreDb = () => {
     logger.debug(`Target DB ${targetDbString} is being restored with Source DB backup ${backupFile}`);
     const psql = spawn('psql', ['--dbname=' + targetDbString, '-f', backupFile]);
     psql.stdout.on('data', (data) => {
-        logger.info(`Target DB restore stdout: ${data}`);
+        logger.debug(`Target DB restore stdout: ${data}`);
     });
 
     psql.stderr.on('data', (data) => {
