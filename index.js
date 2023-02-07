@@ -60,10 +60,10 @@ const createBackup = () => {
     pg_dump.on('exit', (code) => {
         if (code === 0) {
             logger.info('Process pg_dump terminated successfully');
+            restoreDb();
         } else {
             logger.info('Process pg_dump terminated with code', code);
         }
-        restoreDb();
     });
 
     pg_dump.on('close', (code) => {
@@ -97,10 +97,10 @@ const restoreDb = () => {
     psql.on('exit', (code) => {
         if (code === 0) {
             logger.info('Process psql terminated successfully');
+            removeBackup();
         } else {
             logger.info('Process psql terminated with code', code);
         }
-        removeBackup();
     });
 
     psql.on('close', (code) => {
