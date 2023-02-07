@@ -58,11 +58,20 @@ const createBackup = () => {
         logger.error(`Source DB backup stderr: ${data}`);
     });
 
+    pg_dump.on('exit', (code) => {
+        if (code === 0) {
+            logger.info('Process pg_dump terminated successfully');
+        } else {
+            logger.info('Process pg_dump terminated with code', code);
+        }
+    });
+
     pg_dump.on('close', (code) => {
         if (code === 0) {
             logger.info(`Source DB backup created successfully`);
             logger.debug(`Source DB backup created at ${backupFile} successfully`);
             sendDiscordMessage(`Source DB backup created successfully`);
+            pg_dump.kill();
             terminateProcess('pg_dump');
             restoreDb();
         } else {
@@ -86,11 +95,20 @@ const restoreDb = () => {
         logger.error(`Target DB restore stderr: ${data}`);
     });
 
+    psql.on('exit', (code) => {
+        if (code === 0) {
+            logger.info('Process psql terminated successfully');
+        } else {
+            logger.info('Process psql terminated with code', code);
+        }
+    });
+
     psql.on('close', (code) => {
         if (code === 0) {
             logger.info(`Target DB restored with Source DB backup successfully`);
             logger.debug(`Target DB ${targetDbString} restored with Source DB backup ${backupFile} successfully`);
             sendDiscordMessage(`Target DB restored with Source DB backup successfully`);
+            psql.kill();
             terminateProcess('psql');
             removeBackup();
         } else {
