@@ -55,6 +55,10 @@ const createBackup = () => {
         logger.error(`Source DB backup stderr: ${data}`);
     });
 
+    pg_dump.on('error', (error) => {
+        throw new Error(`pg_dump encountered an error: ${error.message}`);
+    });
+
     pg_dump.on('exit', (code) => {
         if (code === 0) {
             logger.info('Process pg_dump terminated successfully');
@@ -88,6 +92,10 @@ const restoreDb = () => {
 
     psql.stderr.on('data', (data) => {
         logger.error(`Target DB restore stderr: ${data}`);
+    });
+
+    psql.on('error', (error) => {
+        throw new Error(`psql encountered an error: ${error.message}`);
     });
 
     psql.on('exit', (code) => {
