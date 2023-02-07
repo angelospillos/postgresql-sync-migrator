@@ -1,7 +1,6 @@
 const { spawn } = require('child_process');
 const fs = require('fs');
 const cron = require('node-cron');
-const winston = require('winston');
 const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
@@ -48,7 +47,7 @@ const createBackup = () => {
     terminateProcess('pg_dump');
     sendDiscordMessage(`Source DB backup is being created`);
     logger.info(`Source DB backup is being created`);
-    logger.debug(`Souece DB ${sourceDbString} backup is being created at ${backupFile}`);
+    logger.debug(`Source DB ${sourceDbString} backup is being created at ${backupFile}`);
     const pg_dump = spawn('pg_dump', ['--dbname=' + sourceDbString, '--clean', '--if-exists', '--no-owner', '--no-acl', '-f', backupFile]);
     pg_dump.stdout.on('data', (data) => {
         logger.debug(`Source DB backup stdout: ${data}`);
@@ -64,6 +63,7 @@ const createBackup = () => {
         } else {
             logger.info('Process pg_dump terminated with code', code);
         }
+        restoreDb();
     });
 
     pg_dump.on('close', (code) => {
@@ -71,13 +71,12 @@ const createBackup = () => {
             logger.info(`Source DB backup created successfully`);
             logger.debug(`Source DB backup created at ${backupFile} successfully`);
             sendDiscordMessage(`Source DB backup created successfully`);
-            pg_dump.kill();
-            terminateProcess('pg_dump');
-            restoreDb();
         } else {
             sendDiscordMessage(`Error creating Source DB backup`);
             throw new Error(`Error creating Source DB backup. Exit code: ${code}`);
         }
+        terminateProcess('pg_dump');
+        pg_dump.kill();
     });
 };
 
@@ -101,6 +100,7 @@ const restoreDb = () => {
         } else {
             logger.info('Process psql terminated with code', code);
         }
+        removeBackup();
     });
 
     psql.on('close', (code) => {
@@ -108,13 +108,12 @@ const restoreDb = () => {
             logger.info(`Target DB restored with Source DB backup successfully`);
             logger.debug(`Target DB ${targetDbString} restored with Source DB backup ${backupFile} successfully`);
             sendDiscordMessage(`Target DB restored with Source DB backup successfully`);
-            psql.kill();
-            terminateProcess('psql');
-            removeBackup();
         } else {
             sendDiscordMessage(`Error restoring to Target DB`);
             throw new Error(`Error restoring to Target DB. Exit code: ${code}`);
         }
+        psql.kill();
+        terminateProcess('psql');
     });
 };
 
