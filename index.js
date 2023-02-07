@@ -52,10 +52,8 @@ const createBackup = () => {
     });
 
     pg_dump.stderr.on('data', (data) => {
+        sendDiscordMessage(`Error creating Source DB backup`);
         logger.error(`Source DB backup stderr: ${data}`);
-    });
-
-    pg_dump.on('error', (error) => {
         throw new Error(`pg_dump encountered an error: ${error.message}`);
     });
 
@@ -92,9 +90,7 @@ const restoreDb = () => {
 
     psql.stderr.on('data', (data) => {
         logger.error(`Target DB restore stderr: ${data}`);
-    });
-
-    psql.on('error', (error) => {
+        sendDiscordMessage(`Error restoring to Target DB`);
         throw new Error(`psql encountered an error: ${error.message}`);
     });
 
