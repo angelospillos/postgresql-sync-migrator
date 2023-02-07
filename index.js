@@ -44,7 +44,6 @@ const retry = (fn, retriesLeft = 3, interval = 10000) => {
 };
 
 const createBackup = () => {
-    terminateProcess('pg_dump');
     sendDiscordMessage(`Source DB backup is being created`);
     logger.info(`Source DB backup is being created`);
     logger.debug(`Source DB ${sourceDbString} backup is being created at ${backupFile}`);
@@ -75,13 +74,11 @@ const createBackup = () => {
             sendDiscordMessage(`Error creating Source DB backup`);
             throw new Error(`Error creating Source DB backup. Exit code: ${code}`);
         }
-        terminateProcess('pg_dump');
         pg_dump.kill();
     });
 };
 
 const restoreDb = () => {
-    terminateProcess('psql');
     sendDiscordMessage(`Target DB is being restored with Source DB backup`);
     logger.info(`Target DB is being restored with Source DB backup`);
     logger.debug(`Target DB ${targetDbString} is being restored with Source DB backup ${backupFile}`);
@@ -113,7 +110,6 @@ const restoreDb = () => {
             throw new Error(`Error restoring to Target DB. Exit code: ${code}`);
         }
         psql.kill();
-        terminateProcess('psql');
     });
 };
 
@@ -123,31 +119,6 @@ const removeBackup = () => {
             logger.error(`Error deleting backup file: ${err}`);
         } else {
             logger.info(`Backup file ${backupFile} deleted`);
-        }
-    });
-};
-
-const terminateProcess = async (processName) => {
-
-    if (!isProcessRunning(processName)) {
-        logger.info(`${processName} is not running, will not terminate`);
-    }
-
-    logger.info(`Terminating process ${processName}`);
-    const pkill = spawn('pkill', ['-f', processName]);
-    pkill.stdout.on('data', (data) => {
-        logger.info(`Terminating process stdout ${data}`);
-    });
-
-    pkill.stderr.on('data', (data) => {
-        logger.error(`Terminating process stderr ${data}`);
-    });
-
-    pkill.on('close', (code) => {
-        if (code === 0) {
-            logger.info(`${processName} process terminated`);
-        } else {
-            logger.error(`Error terminating process ${processName}`);
         }
     });
 };
