@@ -47,6 +47,7 @@ const createBackup = () => {
     logger.info(`Source DB backup is being created`);
     logger.debug(`Source DB ${sourceDbString} backup is being created at ${backupFile}`);
     const pg_dump = spawn('pg_dump', ['--dbname=' + sourceDbString, '--clean', '--if-exists', '--no-owner', '--no-acl', '-f', backupFile]);
+
     pg_dump.stdout.on('data', (data) => {
         logger.debug(`Source DB backup stdout: ${data}`);
     });
@@ -57,25 +58,34 @@ const createBackup = () => {
         throw new Error(`pg_dump encountered an error: ${data}`);
     });
 
+    pg_dump.stdin.on('data', (data) => {
+        logger.debug(`Source DB backup stdin: ${data}`);
+    });
+
     pg_dump.on('exit', (code) => {
         if (code === 0) {
             logger.info('Process pg_dump terminated successfully');
-            restoreDb();
         } else {
             logger.info('Process pg_dump terminated with code', code);
         }
     });
 
     pg_dump.on('close', (code) => {
+
+        pg_dump.stdin.pause();
+        pg_dump.stderr.pause();
+        pg_dump.stdin.pause();
+        pg_dump.kill();
+
         if (code === 0) {
             logger.info(`Source DB backup created successfully`);
             logger.debug(`Source DB backup created at ${backupFile} successfully`);
             sendDiscordMessage(`Source DB backup created successfully`);
+            restoreDb();
         } else {
             sendDiscordMessage(`Error creating Source DB backup`);
             throw new Error(`Error creating Source DB backup. Exit code: ${code}`);
         }
-        pg_dump.kill();
     });
 };
 
@@ -84,6 +94,7 @@ const restoreDb = () => {
     logger.info(`Target DB is being restored with Source DB backup`);
     logger.debug(`Target DB ${targetDbString} is being restored with Source DB backup ${backupFile}`);
     const psql = spawn('psql', ['--dbname=' + targetDbString, '-f', backupFile]);
+
     psql.stdout.on('data', (data) => {
         logger.debug(`Target DB restore stdout: ${data}`);
     });
@@ -94,25 +105,34 @@ const restoreDb = () => {
         throw new Error(`psql encountered an error: ${data}`);
     });
 
+    psql.stdin.on('data', (data) => {
+        logger.debug(`Target DB restore stdin: ${data}`);
+    });
+
     psql.on('exit', (code) => {
         if (code === 0) {
             logger.info('Process psql terminated successfully');
-            removeBackup();
         } else {
             logger.info('Process psql terminated with code', code);
         }
     });
 
     psql.on('close', (code) => {
+
+        psql.stdin.pause();
+        psql.stderr.pause();
+        psql.stdin.pause();
+        psql.kill();
+
         if (code === 0) {
             logger.info(`Target DB restored with Source DB backup successfully`);
             logger.debug(`Target DB ${targetDbString} restored with Source DB backup ${backupFile} successfully`);
             sendDiscordMessage(`Target DB restored with Source DB backup successfully`);
+            removeBackup();
         } else {
             sendDiscordMessage(`Error restoring to Target DB`);
             throw new Error(`Error restoring to Target DB. Exit code: ${code}`);
         }
-        psql.kill();
     });
 };
 
