@@ -1,6 +1,6 @@
 const { spawn } = require('child_process');
 const fs = require('fs');
-const { startCronJob } = require('./cron');
+const { startCronJob } = require('./lib/cron');
 const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
