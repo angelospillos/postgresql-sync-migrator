@@ -1,6 +1,6 @@
 const { spawn } = require('child_process');
 const fs = require('fs');
-const cron = require('node-cron');
+const { startCronJob } = require('./cron');
 const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
@@ -54,7 +54,7 @@ const createBackup = () => {
 
     pg_dump.stderr.on('data', (data) => {
 
-        if(data.includes('warning')){
+        if (data.includes('warning')) {
             logger.warn(`Source DB backup stderr: ${data}`);
             return;
         }
@@ -107,11 +107,11 @@ const restoreDb = () => {
 
     psql.stderr.on('data', (data) => {
 
-        if(data.includes('warning')){
+        if (data.includes('warning')) {
             logger.warn(`Source DB backup stderr: ${data}`);
             return;
         }
-        
+
         logger.error(`Target DB restore stderr: ${data}`);
         sendDiscordMessage(`Error restoring to Target DB`);
         throw new Error(`psql encountered an error: ${data}`);
@@ -170,14 +170,11 @@ const run = () => {
     }
 };
 
-cron.schedule(process.env.SCHEDULE_TIME, () => {
+startCronJob(process.env.SCHEDULE_TIME, process.env.SCHEDULE_TIMEZONE, () => {
     logger.info(`Running scheduled job`);
     sendDiscordMessage(`Running scheduled job`);
     run();
-}, {
-    scheduled: true,
-    timezone: process.env.SCHEDULE_TIMEZONE
-});
+}, 60 * 1000);
 
 if (process.env.RUN_ON_STARTUP === 'true') {
     logger.info(`Running on startup`);
