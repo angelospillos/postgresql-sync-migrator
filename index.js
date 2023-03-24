@@ -48,9 +48,6 @@ const modifyBackupFile = () => {
                     ).replace(
                         /ALTER TABLE (.*?) ADD CONSTRAINT (.*?) UNIQUE.*?;/g,
                         ''
-                    ).replace(
-                        /(CREATE TABLE .*?\((?:.|\n)*?\);(?:\n\n)?)+(?:CREATE (?:UNIQUE )?INDEX .*?;(?:\n\n)?)+/g,
-                        ''
                     );
                 fs.writeFile(path.join(__dirname, modifiedBackupFile), modifiedData, 'utf8', (err) => {
                     if (err) {
