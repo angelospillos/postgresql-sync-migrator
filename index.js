@@ -200,13 +200,6 @@ const removeBackup = () => {
             logger.info(`Backup file ${backupFile} deleted`);
         }
     });
-    fs.unlink(modifiedBackupFile, (err) => {
-        if (err) {
-            logger.error(`Error deleting modified backup file: ${err}`);
-        } else {
-            logger.info(`Modified backup file ${modifiedBackupFile} deleted`);
-        }
-    });
 };
 
 const run = () => {
