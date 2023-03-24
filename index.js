@@ -31,16 +31,16 @@ const modifyBackupFile = () => {
             } else {
                 const modifiedData = data
                     .replace(
-                        /ALTER TABLE (.*?) DROP CONSTRAINT (.*?);/g,
+                        /ALTER TABLE (.*?) DROP CONSTRAINT (.*?) (?!CASCADE);/g,
                         'ALTER TABLE $1 DROP CONSTRAINT $2 CASCADE;'
                     ).replace(
-                        /DROP FUNCTION (.*?);/g,
+                        /DROP FUNCTION (.*?) (?!CASCADE);/g,
                         'DROP FUNCTION $1 CASCADE;'
                     ).replace(
-                        /DROP EXTENSION (.*?);/g,
+                        /DROP EXTENSION (.*?) (?!CASCADE);/g,
                         'DROP EXTENSION $1 CASCADE;'
                     ).replace(
-                        /DROP CONSTRAINT IF EXISTS (.*?) (CASCADE|);/g,
+                        /ALTER TABLE (.*?) DROP CONSTRAINT IF EXISTS (.*?) (?!CASCADE);/g,
                         'ALTER TABLE $1 DROP CONSTRAINT IF EXISTS $2 CASCADE;'
                     );
                 fs.writeFile(path.join(__dirname, modifiedBackupFile), modifiedData, 'utf8', (err) => {
