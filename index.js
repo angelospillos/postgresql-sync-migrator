@@ -30,8 +30,8 @@ const addDropOnCascade = () => {
                 reject(err);
             } else {
                 const modifiedData = data.replace(
-                    /ALTER TABLE (.*?) DROP CONSTRAINT (.*?) ON (.*?);/g,
-                    'ALTER TABLE $1 DROP CONSTRAINT $2 ON $3 CASCADE;'
+                    /ALTER TABLE (.*?) DROP CONSTRAINT (.*?);/g,
+                    'ALTER TABLE $1 DROP CONSTRAINT $2 CASCADE;'
                 );
                 fs.writeFile(path.join(__dirname, modifiedBackupFile), modifiedData, 'utf8', (err) => {
                     if (err) {
@@ -44,6 +44,7 @@ const addDropOnCascade = () => {
         });
     });
 };
+
 
 const retry = (fn, retriesLeft = 3, interval = 10000) => {
     while (retriesLeft) {
