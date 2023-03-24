@@ -20,6 +20,29 @@ app.listen(port, () => {
 const sourceDbString = process.env.DATABASE_URL_SOURCE;
 const targetDbString = process.env.DATABASE_URL_TARGET;
 const backupFile = `${new Date().toISOString()}.sql`;
+const modifiedBackupFile = `modified_${backupFile}`;
+
+const addDropOnCascade = () => {
+    return new Promise((resolve, reject) => {
+        fs.readFile(path.join(__dirname, backupFile), 'utf8', (err, data) => {
+            if (err) {
+                reject(err);
+            } else {
+                const modifiedData = data.replace(
+                    /ALTER TABLE (.*?) DROP CONSTRAINT (.*?) ON (.*?);/g,
+                    'ALTER TABLE $1 DROP CONSTRAINT $2 ON $3 CASCADE;'
+                );
+                fs.writeFile(path.join(__dirname, modifiedBackupFile), modifiedData, 'utf8', (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                });
+            }
+        });
+    });
+};
 
 const retry = (fn, retriesLeft = 3, interval = 10000) => {
     while (retriesLeft) {
@@ -46,7 +69,7 @@ const createBackup = () => {
     sendDiscordMessage(`Source DB backup is being created`);
     logger.info(`Source DB backup is being created`);
     logger.debug(`Source DB ${sourceDbString} backup is being created at ${backupFile}`);
-    const pg_dump = spawn('pg_dump', ['--dbname=' + sourceDbString, '--clean', '--if-exists', '--cascade', '--no-owner', '--no-acl', '-f', backupFile]);
+    const pg_dump = spawn('pg_dump', ['--dbname=' + sourceDbString, '--clean', '--if-exists', '--no-owner', '--no-acl', '-f', backupFile]);
 
     pg_dump.stdout.on('data', (data) => {
         logger.debug(`Source DB backup stdout: ${data}`);
@@ -87,7 +110,7 @@ const createBackup = () => {
             logger.info(`Source DB backup created successfully`);
             logger.debug(`Source DB backup created at ${backupFile} successfully`);
             sendDiscordMessage(`Source DB backup created successfully`);
-            restoreDb();
+            prepareBackupFile();
         } else {
             sendDiscordMessage(`Error creating Source DB backup`);
             throw new Error(`Error creating Source DB backup. Exit code: ${code}`);
@@ -95,11 +118,22 @@ const createBackup = () => {
     });
 };
 
+const prepareBackupFile = () => {
+    sendDiscordMessage(`Source DB backup is being prepared for restore`);
+    addDropOnCascade()
+        .then(() => {
+            restoreDb()
+        }).catch((err) => {
+            logger.error(`Error preparing backup file: ${err}`);
+            sendDiscordMessage(`Error preparing backup file`);
+        });
+}
+
 const restoreDb = () => {
     sendDiscordMessage(`Target DB is being restored with Source DB backup`);
     logger.info(`Target DB is being restored with Source DB backup`);
     logger.debug(`Target DB ${targetDbString} is being restored with Source DB backup ${backupFile}`);
-    const psql = spawn('psql', ['--dbname=' + targetDbString, '-f', backupFile]);
+    const psql = spawn('psql', ['--dbname=' + targetDbString, '-f', modifiedBackupFile]);
 
     psql.stdout.on('data', (data) => {
         logger.debug(`Target DB restore stdout: ${data}`);
@@ -154,6 +188,13 @@ const removeBackup = () => {
             logger.error(`Error deleting backup file: ${err}`);
         } else {
             logger.info(`Backup file ${backupFile} deleted`);
+        }
+    });
+    fs.unlink(modifiedBackupFile, (err) => {
+        if (err) {
+            logger.error(`Error deleting modified backup file: ${err}`);
+        } else {
+            logger.info(`Modified backup file ${modifiedBackupFile} deleted`);
         }
     });
 };
