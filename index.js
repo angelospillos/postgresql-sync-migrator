@@ -97,7 +97,7 @@ const createBackup = () => {
 };
 
 const dropAllTables = () => {
-    const psql = spawn('psql', ['-U', process.env.PGUSER, '-h', process.env.PGHOST, '-p', process.env.PGPORT, '-d', process.env.PGDATABASE, '-c', 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;']);
+    const psql = spawn('psql', ['--dbname=' + targetDbString, '-c', 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;']);
 
     psql.stdout.on('data', (data) => {
         logger.debug(`Drop all tables stdout: ${data}`);
