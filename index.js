@@ -36,6 +36,9 @@ const addCascadeOnDrop = () => {
                     ).replace(
                         /DROP FUNCTION (.*?);/g,
                         'DROP FUNCTION $1 CASCADE;'
+                    ).replace(
+                        /DROP EXTENSION (.*?);/g,
+                        'DROP EXTENSION $1 CASCADE;'
                     );
                 fs.writeFile(path.join(__dirname, modifiedBackupFile), modifiedData, 'utf8', (err) => {
                     if (err) {
