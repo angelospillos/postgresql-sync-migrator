@@ -1,0 +1,64 @@
+version: "3.3"
+
+services:
+
+  postgres_src:
+    image: postgres:14.7
+    container_name: postgres_src
+    restart: on-failure
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=debug_db
+    ports:
+      - "54551:5432"
+    networks:
+      - pg_migrator_net
+    volumes:
+      - pg_vol_src:/data/db
+
+  postgres_dst:
+    image: postgres:14.7
+    container_name: postgres_dst
+    restart: on-failure
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=debug_db
+    ports:
+      - "54552:5432"
+    networks:
+      - pg_migrator_net
+    volumes:
+      - pg_vol_dst:/data/db
+
+  postgres_migrator:
+    image: postgres_migrator
+    container_name: pg_migrator
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+        - postgres_src
+        - postgres_dst
+    restart: on-failure
+    environment:
+      - PORT=3000
+      - LOGGER_LEVEL=warn
+      - DATABASE_URL_SOURCE=postgresql://postgres:secret@postgres_src:5432/debug_db
+      - DATABASE_URL_TARGET=postgresql://postgres:secret@postgres_dst:5432/debug_db
+      - SCHEDULE_TIME="*/1 * * * *"
+      - SCHEDULE_TIMEZONE=UTC
+      - RUN_ON_STARTUP=true
+    ports:
+      - "3000:3000"
+      - "9229:9229" # Node inspector.
+    networks:
+      - pg_migrator_net
+
+volumes:
+  pg_vol_src:
+  pg_vol_dst:
+
+networks:
+  pg_migrator_net:

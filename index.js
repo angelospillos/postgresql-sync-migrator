@@ -21,46 +21,6 @@ app.listen(port, () => {
 const sourceDbString = process.env.DATABASE_URL_SOURCE;
 const targetDbString = process.env.DATABASE_URL_TARGET;
 const backupFile = `${new Date().toISOString()}.sql`;
-const modifiedBackupFile = `modified_${backupFile}`;
-
-const modifyBackupFile = () => {
-    return new Promise((resolve, reject) => {
-        fs.readFile(path.join(__dirname, backupFile), 'utf8', (err, data) => {
-            if (err) {
-                reject(err);
-            } else {
-                const modifiedData = data
-                    .replace(
-                        /ALTER TABLE (.*?) DROP CONSTRAINT (.*?) (?!CASCADE);/g,
-                        'ALTER TABLE $1 DROP CONSTRAINT $2 CASCADE;'
-                    ).replace(
-                        /DROP FUNCTION (.*?) (?!CASCADE);/g,
-                        'DROP FUNCTION $1 CASCADE;'
-                    ).replace(
-                        /DROP EXTENSION (.*?) (?!CASCADE);/g,
-                        'DROP EXTENSION $1 CASCADE;'
-                    ).replace(
-                        /ALTER TABLE (.*?) DROP CONSTRAINT IF EXISTS (.*?) (?!CASCADE);/g,
-                        'ALTER TABLE $1 DROP CONSTRAINT IF EXISTS $2 CASCADE;'
-                    ).replace(
-                        /ALTER TABLE (.*?) ADD CONSTRAINT (.*?) PRIMARY KEY.*?;/g,
-                        ''
-                    ).replace(
-                        /ALTER TABLE (.*?) ADD CONSTRAINT (.*?) UNIQUE.*?;/g,
-                        ''
-                    );
-                fs.writeFile(path.join(__dirname, modifiedBackupFile), modifiedData, 'utf8', (err) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve();
-                    }
-                });
-            }
-        });
-    });
-};
-
 
 const retry = (fn, retriesLeft = 3, interval = 10000) => {
     while (retriesLeft) {
@@ -128,7 +88,7 @@ const createBackup = () => {
             logger.info(`Source DB backup created successfully`);
             logger.debug(`Source DB backup created at ${backupFile} successfully`);
             sendDiscordMessage(`Source DB backup created successfully`);
-            prepareBackupFile();
+            dropAllTables();
         } else {
             sendDiscordMessage(`Error creating Source DB backup`);
             throw new Error(`Error creating Source DB backup. Exit code: ${code}`);
@@ -136,23 +96,54 @@ const createBackup = () => {
     });
 };
 
-const prepareBackupFile = () => {
-    logger.info(`Source DB backup is being prepared for restore`);
-    sendDiscordMessage(`Source DB backup is being prepared for restore`);
-    modifyBackupFile()
-        .then(() => {
-            restoreDb()
-        }).catch((err) => {
-            logger.error(`Error preparing backup file: ${err}`);
-            sendDiscordMessage(`Error preparing backup file`);
-        });
-}
+const dropAllTables = () => {
+    const psql = spawn('psql', ['-U', process.env.PGUSER, '-h', process.env.PGHOST, '-p', process.env.PGPORT, '-d', process.env.PGDATABASE, '-c', 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;']);
+
+    psql.stdout.on('data', (data) => {
+        logger.debug(`Drop all tables stdout: ${data}`);
+    });
+
+    psql.stderr.on('data', (data) => {
+        logger.error(`Drop all tables stderr: ${data}`);
+        sendDiscordMessage(`Error dropping all tables`);
+        throw new Error(`psql encountered an error: ${data}`);
+    });
+
+    psql.stdin.on('data', (data) => {
+        logger.debug(`Drop all tables stdin: ${data}`);
+    });
+
+    psql.on('exit', (code) => {
+        if (code === 0) {
+            logger.info('Process psql terminated successfully');
+        } else {
+            logger.info('Process psql terminated with code', code);
+        }
+    });
+
+    psql.on('close', (code) => {
+
+        psql.stdin.pause();
+        psql.stderr.pause();
+        psql.stdin.pause();
+        psql.kill();
+
+        if (code === 0) {
+            logger.info(`All tables dropped successfully`);
+            sendDiscordMessage(`All tables dropped successfully`);
+            restoreDb();
+        } else {
+            sendDiscordMessage(`Error dropping all tables`);
+            throw new Error(`Error dropping all tables. Exit code: ${code}`);
+        }
+    });
+};
 
 const restoreDb = () => {
     sendDiscordMessage(`Target DB is being restored with Source DB backup`);
     logger.info(`Target DB is being restored with Source DB backup`);
     logger.debug(`Target DB ${targetDbString} is being restored with Source DB backup ${backupFile}`);
-    const psql = spawn('psql', ['--dbname=' + targetDbString, '-f', modifiedBackupFile]);
+    const psql = spawn('psql', ['--dbname=' + targetDbString, '-f', backupFile]);
 
     psql.stdout.on('data', (data) => {
         logger.debug(`Target DB restore stdout: ${data}`);
