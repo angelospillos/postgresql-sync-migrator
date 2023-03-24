@@ -16,7 +16,7 @@ This project provides a Node.js script that exports data from one PostgreSQL dat
 - Error handling and logging
 - Retry mechanism in case of errors
 - Drop and create target database based on the source database
-- Uses node-cron for scheduling
+- Uses cron for scheduling
 - Uses pg for connecting to PostgreSQL databases
 
 ## Installation
@@ -82,7 +82,6 @@ This project is licensed under the [MIT License](https://opensource.org/licenses
 
 ## References
 
-- [node-cron](https://www.npmjs.com/package/node-cron)
 - [dotenv](https://www.npmjs.com/package/dotenv)
 - [PostgreSQL](https://www.postgresql.org/)
 
