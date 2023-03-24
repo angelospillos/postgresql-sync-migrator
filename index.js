@@ -42,6 +42,9 @@ const modifyBackupFile = () => {
                     ).replace(
                         /ALTER TABLE (.*?) DROP CONSTRAINT IF EXISTS (.*?) (?!CASCADE);/g,
                         'ALTER TABLE $1 DROP CONSTRAINT IF EXISTS $2 CASCADE;'
+                    ).replace(
+                        /ALTER TABLE (.*?) ADD CONSTRAINT (.*?) PRIMARY KEY/g,
+                        'ALTER TABLE $1 ADD CONSTRAINT IF NOT EXISTS $2 PRIMARY KEY'
                     );
                 fs.writeFile(path.join(__dirname, modifiedBackupFile), modifiedData, 'utf8', (err) => {
                     if (err) {
