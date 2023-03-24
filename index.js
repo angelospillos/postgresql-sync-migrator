@@ -23,7 +23,7 @@ const targetDbString = process.env.DATABASE_URL_TARGET;
 const backupFile = `${new Date().toISOString()}.sql`;
 const modifiedBackupFile = `modified_${backupFile}`;
 
-const addCascadeOnDrop = () => {
+const modifyBackupFile = () => {
     return new Promise((resolve, reject) => {
         fs.readFile(path.join(__dirname, backupFile), 'utf8', (err, data) => {
             if (err) {
@@ -39,6 +39,9 @@ const addCascadeOnDrop = () => {
                     ).replace(
                         /DROP EXTENSION (.*?);/g,
                         'DROP EXTENSION $1 CASCADE;'
+                    ).replace(
+                        /DROP CONSTRAINT IF EXISTS (.*?) (CASCADE|);/g,
+                        'ALTER TABLE $1 DROP CONSTRAINT IF EXISTS $2 CASCADE;'
                     );
                 fs.writeFile(path.join(__dirname, modifiedBackupFile), modifiedData, 'utf8', (err) => {
                     if (err) {
@@ -128,8 +131,9 @@ const createBackup = () => {
 };
 
 const prepareBackupFile = () => {
+    logger.info(`Source DB backup is being prepared for restore`);
     sendDiscordMessage(`Source DB backup is being prepared for restore`);
-    addCascadeOnDrop()
+    modifyBackupFile()
         .then(() => {
             restoreDb()
         }).catch((err) => {
