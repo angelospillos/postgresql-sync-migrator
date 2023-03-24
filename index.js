@@ -8,6 +8,7 @@ const { sendDiscordMessage } = require('./lib/discord');
 const { createLogger } = require('./lib/logger');
 const logger = createLogger();
 require('dotenv').config();
+const path = require('path');
 
 app.get('/', (req, res) => {
     res.send('Up and running')
