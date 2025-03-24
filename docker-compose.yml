@@ -3,7 +3,7 @@ version: "3.3"
 services:
 
   postgres_src:
-    image: postgres:14.7
+    image: postgres:16.7
     container_name: postgres_src
     restart: on-failure
     environment:
@@ -18,7 +18,7 @@ services:
       - pg_vol_src:/data/db
 
   postgres_dst:
-    image: postgres:14.7
+    image: postgres:16.7
     container_name: postgres_dst
     restart: on-failure
     environment:
