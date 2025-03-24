@@ -48,17 +48,7 @@ const createBackup = () => {
     logger.info(`Source DB backup is being created`);
     logger.debug(`Source DB ${sourceDbString} backup is being created at ${backupFile}`);
 
-    const pg_dump = spawn('pg_dump', [
-        '--dbname=' + sourceDbString, 
-        '--clean', 
-        '--if-exists', 
-        '--no-owner', 
-        '--no-acl',
-        '--no-comments',
-        '--no-tablespaces',
-        '-f', 
-        backupFile
-    ]);
+   const pg_dump = spawn('pg_dump', ['--dbname=' + sourceDbString, '--clean', '--if-exists', '--no-owner', '--no-acl', '-f', backupFile]);
     
     pg_dump.stdout.on('data', (data) => {
         logger.debug(`Source DB backup stdout: ${data}`);
