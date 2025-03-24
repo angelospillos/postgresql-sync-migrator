@@ -47,8 +47,24 @@ const createBackup = () => {
     sendDiscordMessage(`Source DB backup is being created`);
     logger.info(`Source DB backup is being created`);
     logger.debug(`Source DB ${sourceDbString} backup is being created at ${backupFile}`);
-    const pg_dump = spawn('pg_dump', ['--dbname=' + sourceDbString, '--clean', '--if-exists', '--no-owner', '--no-acl', '-f', backupFile]);
 
+    // Add --no-comments and -N (--no-sync) flags to ignore settings
+    // Add -v (--no-privileges) to exclude privileges and ACLs more thoroughly
+    // Add --no-tablespaces to exclude tablespace info
+    const pg_dump = spawn('pg_dump', [
+        '--dbname=' + sourceDbString, 
+        '--clean', 
+        '--if-exists', 
+        '--no-owner', 
+        '--no-acl',
+        '--no-comments',
+        '--no-tablespaces',
+        '-v',
+        '-N',
+        '-f', 
+        backupFile
+    ]);
+    
     pg_dump.stdout.on('data', (data) => {
         logger.debug(`Source DB backup stdout: ${data}`);
     });
