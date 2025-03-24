@@ -48,9 +48,6 @@ const createBackup = () => {
     logger.info(`Source DB backup is being created`);
     logger.debug(`Source DB ${sourceDbString} backup is being created at ${backupFile}`);
 
-    // Add --no-comments and -N (--no-sync) flags to ignore settings
-    // Add -v (--no-privileges) to exclude privileges and ACLs more thoroughly
-    // Add --no-tablespaces to exclude tablespace info
     const pg_dump = spawn('pg_dump', [
         '--dbname=' + sourceDbString, 
         '--clean', 
@@ -59,8 +56,6 @@ const createBackup = () => {
         '--no-acl',
         '--no-comments',
         '--no-tablespaces',
-        '-v',
-        '-N',
         '-f', 
         backupFile
     ]);
